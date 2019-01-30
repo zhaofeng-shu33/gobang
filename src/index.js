@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+var DIM = 10;
 function Square(props) {
   return (
     <button className="square" 
@@ -23,7 +24,7 @@ class Board extends React.Component {
   // render a row of squares
   renderSquareRow(i){
     let returnValue = [];
-    for(let j = 0; j < 3; j++){
+    for(let j = 0; j < DIM; j++){
       returnValue.push(<Square 
         value = {this.props.squares[i][j]}
         onClick = {() => this.props.onClick(i, j)}
@@ -35,7 +36,7 @@ class Board extends React.Component {
   // render multiple rows of squares
   renderSquares(){
     let returnValue = [];
-    for(let i = 0; i < 3; i++){
+    for(let i = 0; i < DIM; i++){
       returnValue.push(<div 
         className="board-row" key={i}>
         {this.renderSquareRow(i)}
@@ -51,13 +52,29 @@ class Board extends React.Component {
     );
   }
 }
-
+function check_winner_one_direction(squares, start_x, start_y, delta_x, delta_y){
+  let player = squares[start_x][start_y];
+  let x_pos = start_x, y_pos = start_y, counter = 1;
+  while(x_pos >=0 && x_pos < DIM && y_pos >=0 && y_pos < DIM){
+    x_pos += delta_x;
+    y_pos += delta_y;
+    if(squares[x_pos][y_pos] != player || counter == 5){
+      break;
+    }
+    counter += 1;
+  }
+  return counter == 5;
+}
 class Game extends React.Component {
   constructor(props){
     super(props);
+    let double_squares = Array();
+    for(let i = 0; i < DIM; i++){
+      double_squares.push(Array(DIM).fill(null));
+    }
     this.state = {
       history: [{
-        squares: Array(Array(3).fill(null), Array(3).fill(null), Array(3).fill(null)),
+        squares: double_squares,
         lastStep_horizontal: null,
         lastStep_vertical: null
       }],
@@ -70,7 +87,7 @@ class Game extends React.Component {
       stepNumber: step,
       xIsNext: (step % 2) == 0,
     });
-  }
+  }  
   calculateWinner(){
     const history = this.state.history;
     const current = history[this.state.stepNumber];
@@ -78,15 +95,14 @@ class Game extends React.Component {
     if(h == null)
       return null;   
     const s = current.squares;
-    if(s[h][0] && s[h][0] == s[h][1] && s[h][1] == s[h][2])
-      return s[h][0];
     const v= current.lastStep_vertical;
-    if(s[0][v] && s[0][v] == s[1][v] && s[1][v] == s[2][v])
-      return s[0][v];
-    if(h == v && s[0][0] && s[0][0] == s[1][1] && s[1][1] == s[2][2])
-      return s[h][v];
-    if(h + v == 2 && s[0][2] && s[0][2] == s[1][1] && s[1][1] == s[2][0])
-      return s[h][v];
+    const directions = [[1,1],[1,0],[1,-1],[0,1],[0,-1],[-1,0],[-1,1],[-1,-1]];
+    for(let i = 0; i < 8; i++){
+      let delta_x = directions[i][0], delta_y = directions[i][1];
+      if(check_winner_one_direction(s, h, v, delta_x, delta_y)){
+        return s[h][v];
+      }
+    }
     return null;
   }
   handleClick(i, j) {
